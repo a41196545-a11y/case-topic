@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>판례로 읽는 우리 사회 주제 선정</title>
+<style>
+:root {
+  --bg:#f5f7fb; --card:#fff; --text:#162033; --muted:#667085; --line:#dbe2ea;
+  --accent:#3157d5; --accent2:#eef2ff; --ok:#13795b; --danger:#b42318;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Pretendard","Noto Sans KR",sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:28px 18px 60px}
+.hero{background:linear-gradient(135deg,#263f9e,#5371df);color:white;padding:28px;border-radius:22px;box-shadow:0 12px 30px rgba(40,60,120,.15)}
+.hero h1{margin:0 0 8px;font-size:clamp(26px,5vw,40px);line-height:1.2}
+.hero p{margin:0;opacity:.9}
+.card{background:var(--card);margin-top:18px;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+label{display:block;font-weight:700;margin-bottom:8px}
+input,select,button{font:inherit}
+input,select{width:100%;padding:13px 14px;border:1px solid #cfd7e3;border-radius:12px;background:white;color:var(--text)}
+input:focus,select:focus{outline:3px solid rgba(49,87,213,.14);border-color:var(--accent)}
+.help{font-size:13px;color:var(--muted);margin-top:6px}
+.topic-preview{margin-top:14px;padding:14px;border-radius:12px;background:var(--accent2);display:none}
+.topic-preview strong{display:block;margin-bottom:5px}
+.actions{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+button{border:0;border-radius:12px;padding:13px 18px;font-weight:800;cursor:pointer}
+.primary{background:var(--accent);color:#fff}
+.secondary{background:#eef1f5;color:#25324a}
+button:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:14px;padding:12px 14px;border-radius:10px;display:none}
+.status.ok{display:block;background:#eaf8f2;color:var(--ok)}
+.status.err{display:block;background:#fff0ee;color:var(--danger)}
+.status.warn{display:block;background:#fff7e8;color:#8a5a00}
+.small{font-size:13px;color:var(--muted)}
+.admin{display:none}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#f8fafc}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3448a5;font-size:12px;font-weight:700}
+details{margin-top:14px}
+pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:14px;border-radius:12px;overflow:auto;font-size:12px}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <h1>판례로 읽는 우리 사회 주제 선정</h1>
+    <p>학번과 이름을 입력하고, 자신이 선정한 주제를 하나 선택해 제출하세요.</p>
+  </section>
+
+  <section class="card" id="studentCard">
+    <form id="form" novalidate>
+      <div style="margin-bottom:16px">
+        <label for="classGroup">이동 수업반</label>
+        <select id="classGroup" name="classGroup" required>
+          <option value="">이동 수업반을 선택하세요</option>
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D</option>
+        </select>
+      </div>
+      <div class="grid">
+        <div>
+          <label for="studentId">학번</label>
+          <input id="studentId" name="studentId" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="숫자 4자리" required />
+          <div class="help">예: 1203</div>
+        </div>
+        <div>
+          <label for="name">이름</label>
+          <input id="name" name="name" maxlength="20" placeholder="이름 입력" required />
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <label for="topicSelect">주제 선택</label>
+        <select id="topicSelect" required>
+          <option value="">주제를 선택하세요</option>
+        </select>
+        <div class="topic-preview" id="preview"></div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="submitBtn" type="submit">선정 주제 제출</button>
+        <button class="secondary" type="reset">다시 선택</button>
+      </div>
+      <div id="status" class="status"></div>
+    </form>
+  </section>
+
+  <section class="card admin" id="adminCard">
+    <h2 style="margin-top:0">관리자 수합 보기</h2>
+    <p class="small">관리자 키를 입력하면 제출 현황을 불러오고 CSV로 저장할 수 있습니다. 로컬 파일로 열었을 때 관리자 불러오기가 막히면 Google 스프레드시트에서 직접 확인하세요.</p>
+    <div class="grid">
+      <div>
+        <label for="adminKey">관리자 키</label>
+        <input id="adminKey" type="password" placeholder="관리자 키" />
+      </div>
+      <div style="display:flex;align-items:end;gap:8px">
+        <button class="primary" id="loadBtn" type="button">전체 수합 불러오기</button>
+        <button class="secondary" id="csvBtn" type="button" disabled>CSV 저장</button>
+      </div>
+    </div>
+    <div id="adminStatus" class="status"></div>
+    <div style="overflow:auto">
+      <table id="resultTable" style="display:none">
+        <thead><tr><th>제출시각</th><th>이동 수업반</th><th>학번</th><th>이름</th><th>대단원</th><th>중단원</th><th>선정 주제</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="setupCard" style="display:none">
+    <h2 style="margin-top:0">선생님용 최초 설정 안내</h2>
+    <p>이 HTML은 학생에게 배포할 화면이고, <b>공동 수합 저장소</b>는 Google 스프레드시트 + Apps Script를 사용하도록 만들어져 있습니다.</p>
+    <ol>
+      <li>Google 스프레드시트를 하나 만든 뒤 <b>확장 프로그램 → Apps Script</b>를 엽니다.</li>
+      <li>아래 코드를 붙여넣고 <b>웹 앱</b>으로 배포합니다. 실행 사용자는 본인, 접근 권한은 링크를 가진 사용자로 설정합니다.</li>
+      <li>배포된 웹 앱 URL을 이 HTML 링크 뒤에 <code>?endpoint=웹앱URL</code> 형태로 붙여 학생에게 보냅니다.</li>
+      <li>관리자 수합은 같은 링크 뒤에 <code>&admin=1</code>을 추가하고 관리자 키를 입력합니다.</li>
+    </ol>
+    <details open>
+      <summary><b>Apps Script 코드 보기</b></summary>
+      <pre id="appsScript"></pre>
+    </details>
+  </section>
+
+  <footer>주제 목록 50개 · 학생당 1개 주제 선택</footer>
+</div>
+
+<script>
+const TOPICS = [{"unit": "Ⅰ. 개인 생활과 법", "subunit": "1. 가족관계와 법", "id": "1-1", "text": "혼인 신고만 하면 혼인이 되는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "1. 가족관계와 법", "id": "1-2", "text": "돈을 빌리는 행위는 일상 가사의 행위가 아닌가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "1. 가족관계와 법", "id": "1-3", "text": "이혼에 책임이 있는 당사자가 재판상 이혼을 청구할 수 있는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "1. 가족관계와 법", "id": "1-4", "text": "조부모가 손자녀를 입양할 수 있을까?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "1. 가족관계와 법", "id": "1-5", "text": "패륜아나 형제자매에게도 유류분이 인정될까?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "1. 가족관계와 법", "id": "1-6", "text": "방식을 갖추지 못한 유언은 유언자의 진의에 부합하더라도 무효인가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "2. 계약과 불법행위", "id": "1-7", "text": "광고는 청약이 아니므로 광고에서 홍보한 내용은 이행을 청구할 수 없는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "2. 계약과 불법행위", "id": "1-8", "text": "의사 능력이 없는지 유무는 어떻게 판단할 수 있는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "2. 계약과 불법행위", "id": "1-9", "text": "미성년자의 법률행위에 대한 법정대리인의 동의는 묵시적으로도 가능한가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "2. 계약과 불법행위", "id": "1-10", "text": "계약금을 포기하면 언제라도 계약을 해제할 수 있는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "2. 계약과 불법행위", "id": "1-11", "text": "책임 무능력자의 감독자 책임은 누가 지는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "3. 물권의 행사와 한계", "id": "1-12", "text": "자신의 토지에 도로가 있다면 언제든지 길을 막을 수 있는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "3. 물권의 행사와 한계", "id": "1-13", "text": "주택을 인도받고 주민 등록만 마치면 「주택 임대차 보호법」상 대항력은 항상 유지되는가?"}, {"unit": "Ⅰ. 개인 생활과 법", "subunit": "3. 물권의 행사와 한계", "id": "1-14", "text": "저당권자보다 먼저 대항력을 갖추면 언제나 임차인은 보호받는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "1. 민주주의와 법치주의", "id": "2-1", "text": "법률로부터 위임 없이 대통령령으로 정한 경우 법치주의에 위배되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "1. 민주주의와 법치주의", "id": "2-2", "text": "민법에서 규정하는 호주 제도는 왜 폐지되었을까?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "1. 민주주의와 법치주의", "id": "2-3", "text": "고위공직자범죄수사처(공수처)를 설치하는 것이 권력 분립 원칙에 위배되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "1. 민주주의와 법치주의", "id": "2-4", "text": "국회가 대통령(행정부)를 견제하는 수단으로서의 탄핵소추 의결권의 행사 방법은?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "2. 우리나라의 헌법", "id": "2-5", "text": "국회의원 재·보궐선거를 휴일이 아닌 평일에 하는 것이 국민 주권주의에 위배되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "2. 우리나라의 헌법", "id": "2-6", "text": "특정한 정치적 견해를 표현한 예술인들을 정부 지원 사업에서 배제한 것이 문화 국가 원리에 위배되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "2. 우리나라의 헌법", "id": "2-7", "text": "형법상 낙태죄는 임신한 여성의 행복 추구권을 침해하는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "2. 우리나라의 헌법", "id": "2-8", "text": "성범죄자 신상 공개 제도는 사생활의 비밀과 자유를 침해하는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "3. 형법과 형사 절차의 이해", "id": "2-9", "text": "아파트 지하 주차장에서 운전 면허 없이 운전한 경우 무면허 운전으로 처벌되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "3. 형법과 형사 절차의 이해", "id": "2-10", "text": "위치추적 전자 장치 부착과 같은 보안 처분도 형벌 불소급의 원칙이 적용되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "3. 형법과 형사 절차의 이해", "id": "2-11", "text": "불법 녹취할 목적으로 식당에 들어갔다면 주거 침입죄에 해당하는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "3. 형법과 형사 절차의 이해", "id": "2-12", "text": "위법한 경찰관의 체포를 면하려고 반항하다가 상해를 가한 것은 정당방위인가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "3. 형법과 형사 절차의 이해", "id": "2-13", "text": "심신 상실·미약의 상황에서 한 범죄는 언제나 처벌을 면하거나 형이 감경되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "4. 법원과 헌법재판소", "id": "2-14", "text": "법관의 독립을 위해 법원 앞에서의 모든 시위는 금지되는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "4. 법원과 헌법재판소", "id": "2-15", "text": "국회의원과 국회의장도 헌법재판소의 권한 쟁의 심판의 당사자가 될 수 있는가?"}, {"unit": "Ⅱ. 국가 생활과 법", "subunit": "4. 법원과 헌법재판소", "id": "2-16", "text": "변호사 시험 응시 기회를 5회로 제한하는 것이 직업 선택의 자유를 침해하는가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "1. 근로자와 법", "id": "3-1", "text": "최저 임금을 계산할 때 유급 휴가 기간은 최저 임금 지급 대상 시간에서 제외되는가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "1. 근로자와 법", "id": "3-2", "text": "「근로 기준법」에서 보장하는 1일과 1주일의 근로 시간과 휴게 시간은?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "1. 근로자와 법", "id": "3-3", "text": "부당 해고를 다투던 중 정년이 된 경우에도 구제가 가능한가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "1. 근로자와 법", "id": "3-4", "text": "직장 내 성희롱에 대해 적절하게 대처하지 않은 사업주의 책임은?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "2. 경제생활의 문제와 법", "id": "3-5", "text": "국민에게 건강 보험에 강제로 가입하게 하고 경제적 능력에 따라 보험료를 차등 납부하도록 하는 것이 헌법상 보장하는 행복 추구권, 평등권을 침해하는가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "2. 경제생활의 문제와 법", "id": "3-6", "text": "산재보험을 청구할 수 있는 업무와 업무상 재해의 요건은?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "2. 경제생활의 문제와 법", "id": "3-7", "text": "인터넷 쇼핑몰 회사가 일부 판매자의 인기도를 임의로 상위로 나타나게 한 것은 소비자의 권리를 침해한 것인가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "2. 경제생활의 문제와 법", "id": "3-8", "text": "전국 시장 점유율 50%를 상회하는 학생복 3사가 협의회를 구성하여 공동으로 학교의 공동 구매를 대응하기로 하는 등의 행위는 위법한가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "3. 현대적 법률관계와 지적 재산권", "id": "3-9", "text": "불법 저작물이 포털사이트 카페에 무단으로 업로드되어 저작권을 침해한 경우 포털사이트도 이에 대해 책임을 지는가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "3. 현대적 법률관계와 지적 재산권", "id": "3-10", "text": "플랫폼 노동 종사자도 「근로 기준법」상 근로자인가?"}, {"unit": "Ⅲ. 사회생활과 법", "subunit": "3. 현대적 법률관계와 지적 재산권", "id": "3-11", "text": "캐릭터도 저작물로 보호받을 수 있을까?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "1. 학생·청소년의 권리와 의무", "id": "4-1", "text": "청소년 관람 불가 영화는 어떤 기준에 의해 분류되는가?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "1. 학생·청소년의 권리와 의무", "id": "4-2", "text": "유흥업소 업주가 성인이라고 속이는 청소년의 신분증을 확인하지 않고 고용할 경우 처벌될까?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "1. 학생·청소년의 권리와 의무", "id": "4-3", "text": "아동·청소년 성 착취물을 링크해서 사람들이 보게 할 수 있는 행위도 처벌될까?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "2. 학교에서의 법적 문제와 해결 방안", "id": "4-4", "text": "학교 폭력에서 가해 학생에 대한 조치로 서면 사과, 학급 교체 등을 규정한 것이 가해 학생의 양심의 자유와 인격권을 침해하는가?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "2. 학교에서의 법적 문제와 해결 방안", "id": "4-5", "text": "학교폭력 처리 후 피해 학생 부모가 카카오톡 계정 프로필 상태 메시지에 “학교폭력범은 접촉 금지!!!”라고 게시한 것이 가해 학생에 대한 명예 훼손이 되는가?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "2. 학교에서의 법적 문제와 해결 방안", "id": "4-6", "text": "잘못한 학생에게 방과 후 교실 청소를 하게 하자 학부모가 지속적으로 담임 교체를 요구한 것이 교권 침해에 해당하는가?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "3. 법적 문제 해결을 위한 노력과 시민 참여", "id": "4-7", "text": "자기가 하는 일이 불법임을 인지하지 못한 것을 이유로 처벌을 면할 수 있는가?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "3. 법적 문제 해결을 위한 노력과 시민 참여", "id": "4-8", "text": "미성년자 환자의 경우 친권자를 통해 설명이 전달되게 하면 설명 의무를 다한 것인가?"}, {"unit": "Ⅳ. 학교생활과 법", "subunit": "3. 법적 문제 해결을 위한 노력과 시민 참여", "id": "4-9", "text": "정부가 법률의 취지와 달리 장애인 접근권 규정을 개선 없이 장기간 방치한 경우 손해배상 책임이 있는가?"}];
+
+const params = new URLSearchParams(location.search);
+const ENDPOINT = params.get('endpoint') || 'https://script.google.com/macros/s/AKfycbxoKSuNtAgozZkbGCM1ohy0LlF6JVXs_BIITreXvCzZ5pFDaBLb_W01x87PMiMMRQqk/exec';
+const IS_ADMIN = params.get('admin') === '1';
+const IS_SETUP = params.get('setup') === '1';
+
+const form = document.getElementById('form');
+const topicSelect = document.getElementById('topicSelect');
+const preview = document.getElementById('preview');
+const statusBox = document.getElementById('status');
+const submitBtn = document.getElementById('submitBtn');
+
+function populateTopics() {
+  let currentUnit = '';
+  let currentSub = '';
+  let og = null;
+  TOPICS.forEach(t => {
+    if (t.unit !== currentUnit || t.subunit !== currentSub) {
+      currentUnit = t.unit; currentSub = t.subunit;
+      og = document.createElement('optgroup');
+      og.label = `${t.unit} · ${t.subunit}`;
+      topicSelect.appendChild(og);
+    }
+    const op = document.createElement('option');
+    op.value = t.id;
+    op.textContent = `${t.id}. ${t.text}`;
+    og.appendChild(op);
+  });
+}
+populateTopics();
+
+topicSelect.addEventListener('change', () => {
+  const t = TOPICS.find(x => x.id === topicSelect.value);
+  if (!t) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+  preview.innerHTML = `<strong>${t.unit} · ${t.subunit}</strong>${t.text}`;
+});
+
+document.getElementById('studentId').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g,'').slice(0,4);
+});
+
+form.addEventListener('reset', () => {
+  setTimeout(() => { preview.style.display='none'; statusBox.className='status'; statusBox.textContent=''; }, 0);
+});
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  statusBox.className = 'status';
+  const classGroup = document.getElementById('classGroup').value.trim();
+  const studentId = document.getElementById('studentId').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const t = TOPICS.find(x => x.id === topicSelect.value);
+
+  if (!['A','B','C','D'].includes(classGroup)) return showStatus('이동 수업반(A~D)을 선택하세요.', 'err');
+  if (!/^\d{4}$/.test(studentId)) return showStatus('학번은 숫자 4자리로 입력하세요.', 'err');
+  if (!name) return showStatus('이름을 입력하세요.', 'err');
+  if (!t) return showStatus('주제를 선택하세요.', 'err');
+  if (!ENDPOINT) return showStatus('현재 수합 서버가 연결되지 않았습니다. 선생님께 알려 주세요.', 'warn');
+
+  submitBtn.disabled = true;
+  showStatus('제출 중입니다...', 'warn');
+
+  const frameName = 'submitFrame_' + Date.now();
+  const iframe = document.createElement('iframe');
+  iframe.name = frameName;
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  const postForm = document.createElement('form');
+  postForm.method = 'POST';
+  postForm.action = ENDPOINT;
+  postForm.target = frameName;
+  postForm.style.display = 'none';
+
+  const fields = {
+    action: 'submit',
+    classGroup,
+    studentId,
+    name,
+    topicId: t.id,
+    topicText: t.text,
+    unit: t.unit,
+    subunit: t.subunit
+  };
+
+  Object.entries(fields).forEach(([key, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = value;
+    postForm.appendChild(input);
+  });
+
+  document.body.appendChild(postForm);
+
+  let loaded = false;
+  iframe.addEventListener('load', () => {
+    if (loaded) return;
+    loaded = true;
+    showStatus('제출되었습니다. 선생님 스프레드시트에 반영됩니다.', 'ok');
+    form.querySelectorAll('input,select,button').forEach(el => el.disabled = true);
+    setTimeout(() => {
+      postForm.remove();
+      iframe.remove();
+    }, 1200);
+  });
+
+  postForm.submit();
+
+  // 네트워크가 매우 느린 경우를 위한 안전 안내
+  setTimeout(() => {
+    if (!loaded) {
+      showStatus('전송은 시도되었습니다. 잠시 후 선생님 스프레드시트에서 확인해 주세요.', 'warn');
+      submitBtn.disabled = false;
+    }
+  }, 7000);
+});
+
+function showStatus(msg, type) {
+  statusBox.textContent = msg;
+  statusBox.className = 'status ' + type;
+}
+
+if (IS_ADMIN) {
+  document.getElementById('studentCard').style.display = 'none';
+  document.getElementById('adminCard').style.display = 'block';
+}
+if (IS_SETUP) {
+  document.getElementById('setupCard').style.display = 'block';
+}
+
+let lastRows = [];
+document.getElementById('loadBtn').addEventListener('click', async () => {
+  const key = document.getElementById('adminKey').value.trim();
+  const box = document.getElementById('adminStatus');
+  box.className='status';
+  if (!ENDPOINT) { box.textContent='endpoint가 없습니다.'; box.className='status err'; return; }
+  if (!key) { box.textContent='관리자 키를 입력하세요.'; box.className='status err'; return; }
+  try {
+    const url = ENDPOINT + (ENDPOINT.includes('?')?'&':'?') + 'action=list&key=' + encodeURIComponent(key);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || '불러오기 실패');
+    lastRows = data.rows || [];
+    renderRows(lastRows);
+    box.textContent = `총 ${lastRows.length}건을 불러왔습니다.`;
+    box.className='status ok';
+    document.getElementById('csvBtn').disabled = lastRows.length===0;
+  } catch(err) {
+    box.textContent='오류: '+err.message; box.className='status err';
+  }
+});
+
+function renderRows(rows) {
+  const table = document.getElementById('resultTable');
+  const tbody = table.querySelector('tbody');
+  tbody.innerHTML='';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    [r.timestamp,r.classGroup,r.studentId,r.name,r.unit,r.subunit,r.topicText].forEach(v => {
+      const td=document.createElement('td'); td.textContent=v??''; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.style.display = rows.length ? 'table' : 'none';
+}
+
+document.getElementById('csvBtn').addEventListener('click', () => {
+  const headers = ['제출시각','이동 수업반','학번','이름','대단원','중단원','선정 주제'];
+  const lines = [headers, ...lastRows.map(r => [r.timestamp,r.classGroup,r.studentId,r.name,r.unit,r.subunit,r.topicText])]
+    .map(row => row.map(v => '"' + String(v??'').replaceAll('"','""') + '"').join(','));
+  const blob = new Blob(['\ufeff'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='판례로_읽는_우리_사회_주제_선정.csv'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+const APPS_SCRIPT = String.raw`
+const SHEET_NAME = '응답';
+const ADMIN_KEY = '여기에-관리자-키를-바꾸세요';
+
+function getSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) sh = ss.insertSheet(SHEET_NAME);
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(['제출시각','이동 수업반','학번','이름','주제ID','대단원','중단원','선정 주제']);
+  }
+  return sh;
+}
+
+function doPost(e) {
+  try {
+    const d = JSON.parse(e.postData.contents || '{}');
+    if (d.action !== 'submit') return json_({ok:false,message:'잘못된 요청입니다.'});
+
+    const classGroup = String(d.classGroup || '').trim();
+    const id = String(d.studentId || '').trim();
+    const name = String(d.name || '').trim();
+    if (!['A','B','C','D'].includes(classGroup) || !/^\\d{4}$/.test(id) || !name || !d.topicText) {
+      return json_({ok:false,message:'입력값을 확인하세요.'});
+    }
+
+    const sh = getSheet_();
+    const values = sh.getDataRange().getValues();
+    const existingRow = values.findIndex((r,i) => i>0 && String(r[2]).trim() === id);
+
+    const row = [new Date(), classGroup, id, name, d.topicId, d.unit, d.subunit, d.topicText];
+    if (existingRow > 0) {
+      sh.getRange(existingRow+1,1,1,row.length).setValues([row]);
+      return json_({ok:true,message:'기존 선택이 새 주제로 변경되었습니다.'});
+    }
+
+    sh.appendRow(row);
+    return json_({ok:true,message:'주제 선정이 제출되었습니다.'});
+  } catch(err) {
+    return json_({ok:false,message:String(err)});
+  }
+}
+
+function doGet(e) {
+  if ((e.parameter.action || '') !== 'list') return json_({ok:false,message:'잘못된 요청입니다.'});
+  if ((e.parameter.key || '') !== ADMIN_KEY) return json_({ok:false,message:'관리자 키가 올바르지 않습니다.'});
+
+  const sh = getSheet_();
+  const v = sh.getDataRange().getDisplayValues();
+  const rows = v.slice(1).map(r => ({
+    timestamp:r[0], classGroup:r[1], studentId:r[2], name:r[3], topicId:r[4],
+    unit:r[5], subunit:r[6], topicText:r[7]
+  }));
+  return json_({ok:true,rows});
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+`;
+document.getElementById('appsScript').textContent = APPS_SCRIPT;
+</script>
+</body>
+</html>
